@@ -18,6 +18,12 @@ class AnalysisBatch extends Model
     protected $fillable = [
         'status',
         'total_documents',
+        'word_limit',
+        'top_words',
+    ];
+
+    protected $casts = [
+        'top_words' => 'array',
     ];
 
     /**
@@ -34,5 +40,29 @@ class AnalysisBatch extends Model
     public function keywords(): HasMany
     {
         return $this->hasMany(Keyword::class);
+    }
+
+    /**
+     * Aggregate top words across the whole batch.
+     */
+    public function aggregateIntelligence(): void
+    {
+        $allTopWords = [];
+        foreach ($this->documents()->where('status', Document::STATUS_COMPLETED)->get() as $doc) {
+            $docTopWords = $doc->top_words;
+            if ($docTopWords && is_array($docTopWords)) {
+                foreach ($docTopWords as $word => $count) {
+                    $allTopWords[$word] = ($allTopWords[$word] ?? 0) + $count;
+                }
+            }
+        }
+        
+        arsort($allTopWords);
+        $batchTopWords = array_slice($allTopWords, 0, $this->word_limit ?: 20, true);
+
+        $this->update([
+            'status' => self::STATUS_COMPLETED,
+            'top_words' => $batchTopWords,
+        ]);
     }
 }

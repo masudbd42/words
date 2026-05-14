@@ -12,15 +12,12 @@ class StoreAnalysisRequest extends FormRequest
         return true;
     }
 
-    /**
-     * @return array<string, array<int, string>>
-     */
     public function rules(): array
     {
         return [
-            'keywords' => ['required', 'string', 'max:2000'],
-            'documents' => ['required', 'array', 'min:1'],
-            'documents.*' => ['required', 'file', 'mimes:pdf', 'max:10240'],
+            'keywords' => ['required', 'string', 'max:5000'],
+            'total_files' => ['sometimes', 'integer', 'min:1', 'max:200'],
+            'documents' => ['nullable', 'array'],
         ];
     }
 

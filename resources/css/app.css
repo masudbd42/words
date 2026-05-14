@@ -6,6 +6,49 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-bangla: 'Hind Siliguri', 'Noto Sans Bengali', sans-serif;
+    
+    --color-brand-primary: oklch(0.62 0.17 256);
+    --color-brand-secondary: oklch(0.72 0.14 190);
+    
+    --radius-4xl: 2rem;
+    --radius-5xl: 3rem;
+}
+
+@layer base {
+    body {
+        @apply antialiased selection:bg-indigo-500/30 selection:text-white;
+    }
+}
+
+@layer utilities {
+    .glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    
+    .glass-darker {
+        background: var(--glass-darker-bg);
+        backdrop-filter: blur(var(--glass-blur));
+        border: 1px solid var(--glass-border);
+    }
+
+    .text-gradient {
+        @apply bg-gradient-to-br from-white via-white to-white/60 bg-clip-text text-transparent;
+    }
+    
+    .accent-gradient {
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+    }
+
+    @keyframes pulse-soft {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(0.98); }
+    }
+    .animate-pulse-soft {
+        animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
 }

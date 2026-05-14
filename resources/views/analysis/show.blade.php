@@ -1,91 +1,294 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <p class="text-sm font-semibold uppercase tracking-wide text-slate-400">Analysis Results</p>
-                <h1 class="mt-2 text-3xl font-semibold text-white sm:text-4xl">
-                    Keyword frequency dashboard
-                </h1>
-                <p class="mt-2 text-sm text-slate-300">
-                    Batch #{{ $analysisBatch->id }} · {{ $analysisBatch->documents->count() }} documents
-                </p>
-            </div>
-            <a
-                href="{{ route('analysis.index') }}"
-                class="inline-flex items-center justify-center rounded-full border border-slate-700 px-5 py-2 text-sm font-semibold text-slate-200 transition hover:border-indigo-500 hover:text-white"
-            >
-                New analysis
-            </a>
-        </div>
+    @php
+        $formatBytes = static function (?int $bytes): string {
+            if (! $bytes || $bytes <= 0) {
+                return '—';
+            }
 
-        <div class="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg shadow-slate-900/40">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-semibold text-slate-200">Processing status</p>
-                    <p id="progress-text" class="mt-1 text-xs text-slate-400">
-                        Processed {{ $processed }} of {{ $total }} documents.
+            if ($bytes < 1024) {
+                return $bytes . ' B';
+            }
+
+            if ($bytes < 1024 * 1024) {
+                return number_format($bytes / 1024, 1) . ' KB';
+            }
+
+            return number_format($bytes / (1024 * 1024), 1) . ' MB';
+        };
+
+        $renderMetadataValue = static function ($value): string {
+            if (is_array($value)) {
+                $parts = [];
+
+                foreach ($value as $key => $item) {
+                    if (is_array($item)) {
+                        $parts[] = $key . ': ' . implode(', ', array_filter(array_map('strval', $item)));
+                        continue;
+                    }
+
+                    if (filled($item)) {
+                        $parts[] = is_string($key) ? $item : (string) $item;
+                    }
+                }
+
+                return $parts !== [] ? implode(' · ', $parts) : '—';
+            }
+
+            return filled($value) ? (string) $value : '—';
+        };
+    @endphp
+    <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        <section class="grid gap-6 lg:grid-cols-[1fr_auto]">
+            <div class="rounded-[2.5rem] glass-darker p-8 sm:p-10">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-indigo-400">Analysis Session</p>
+                        <h1 class="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                            Batch Intelligence <span class="text-slate-500">#{{ $analysisBatch->id }}</span>
+                        </h1>
+                        <div class="mt-4 flex items-center gap-4 text-xs font-medium text-slate-400">
+                            <span class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                {{ $analysisBatch->documents->count() }} Documents
+                            </span>
+                            <span class="h-1 w-1 rounded-full bg-slate-700"></span>
+                            <span>{{ $analysisBatch->created_at->format('M d, Y · H:i') }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button onclick="window.location.reload()" class="p-3 rounded-full glass hover:bg-white/5 text-slate-400 hover:text-white transition-all">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </button>
+                        <a href="{{ route('analysis.index') }}" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-xs font-bold text-slate-200 transition-all hover:border-indigo-400/40 hover:bg-indigo-400/10 hover:text-white">
+                            Restart Analysis
+                        </a>
+                    </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div class="rounded-2xl bg-white/5 border border-white/5 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Processed</p>
+                        <p class="mt-1 text-xl font-bold text-white">{{ $processed }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 border border-white/5 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Pending</p>
+                        <p class="mt-1 text-xl font-bold text-amber-400">{{ $pending }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 border border-white/5 p-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Ready</p>
+                        <p class="mt-1 text-xl font-bold text-emerald-400">{{ $completed }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-[2.5rem] glass p-8 min-w-[320px]">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-sm font-bold text-white tracking-tight">Queue Status</h2>
+                    <div class="flex items-center gap-2 px-2 py-1 rounded-md bg-indigo-500/10 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                        </span>
+                        Live
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="rounded-2xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Completed</p>
+                        <p class="mt-1 text-xl font-bold text-emerald-400"><span id="completed-count">{{ $completed }}</span></p>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 border border-white/5 p-4 transition-colors hover:bg-white/[0.07]">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Failed</p>
+                        <p class="mt-1 text-xl font-bold text-rose-400"><span id="failed-count">{{ $failed }}</span></p>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-3 gap-3 text-center">
+                    <div class="rounded-2xl bg-white/5 border border-white/5 px-3 py-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Queued</p>
+                        <p id="queued-count" class="mt-1 text-lg font-bold text-slate-200">{{ max(0, $total - $processed) }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 border border-white/5 px-3 py-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Metadata</p>
+                        <p id="metadata-complete-count" class="mt-1 text-lg font-bold text-indigo-300">{{ $completed }}</p>
+                    </div>
+                    <div class="rounded-2xl bg-white/5 border border-white/5 px-3 py-4">
+                        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">AI Source</p>
+                        <p id="intelligence-source-count" class="mt-1 text-lg font-bold text-indigo-300">Live</p>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        <span>Overall Progress</span>
+                        <span id="progress-percentage">{{ $total > 0 ? (int) round(($processed / $total) * 100) : 0 }}%</span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800/50 p-0.5 border border-white/5">
+                        @php
+                            $percentage = $total > 0 ? (int) round(($processed / $total) * 100) : 0;
+                        @endphp
+                        <div
+                            id="progress-bar"
+                            class="h-full rounded-full accent-gradient transition-all duration-700 ease-out shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                            style="width: {{ $percentage }}%;"
+                        ></div>
+                    </div>
+                    <p id="progress-text" class="mt-3 text-[10px] font-medium text-slate-500 text-center uppercase tracking-wider">
+                        Processed {{ $processed }} of {{ $total }} documents
                     </p>
                 </div>
-                <div class="text-xs text-slate-400">
-                    Completed: <span id="completed-count" class="font-semibold text-emerald-300">{{ $completed }}</span> ·
-                    Failed: <span id="failed-count" class="font-semibold text-rose-300">{{ $failed }}</span>
+            </div>
+        </section>
+
+        <!-- Word Intelligence Section -->
+        <section id="word-intelligence-card" class="rounded-[2.5rem] glass-darker p-8 sm:p-10 transition-all duration-700 opacity-0 transform translate-y-4">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <div class="h-12 w-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white tracking-tight">Word Intelligence Dashboard</h2>
+                        <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Discovering trending concepts across {{ $analysisBatch->documents->count() }} documents</p>
+                    </div>
+                </div>
+                <div id="intelligence-status" class="flex items-center gap-3 text-xs font-bold text-indigo-400 uppercase tracking-widest animate-pulse">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    Analyzing DNA...
                 </div>
             </div>
-            <div class="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-                @php
-                    $percentage = $total > 0 ? (int) round(($processed / $total) * 100) : 0;
-                @endphp
-                <div
-                    id="progress-bar"
-                    class="h-full rounded-full bg-indigo-500 transition-all"
-                    style="width: {{ $percentage }}%;"
-                ></div>
-            </div>
-        </div>
 
-        <div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-lg shadow-slate-900/40">
+            <div id="top-words-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <!-- Top words will be injected here -->
+                <div class="col-span-full py-12 text-center text-slate-600 italic text-sm">
+                    Waiting for analysis engine to extract semantic patterns...
+                </div>
+            </div>
+
+            <!-- Intelligence Progress Bar -->
+            <div id="intelligence-progress-container" class="mt-8 pt-8 border-t border-white/5 hidden">
+                <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    <span>Synthesis Depth</span>
+                    <span id="intelligence-progress-percentage">0%</span>
+                </div>
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800/50 p-0.5 border border-white/5">
+                    <div
+                        id="intelligence-progress-bar"
+                        class="h-full rounded-full bg-indigo-500 transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                        style="width: 0%;"
+                    ></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="overflow-hidden rounded-[2.5rem] glass-darker">
             <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse text-left text-sm text-slate-200">
-                    <thead class="bg-slate-900">
-                        <tr>
-                            <th class="border-b border-slate-800 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                                Document
+                <table class="min-w-full border-collapse text-left text-sm text-slate-300">
+                    <thead>
+                        <tr class="bg-white/5 border-b border-white/5">
+                            <th class="px-8 py-5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                                Document Metadata
                             </th>
                             @foreach ($analysisBatch->keywords as $keyword)
-                                <th class="border-b border-slate-800 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                <th class="px-6 py-5 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 border-l border-white/5">
                                     {{ $keyword->keyword }}
                                 </th>
                             @endforeach
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800">
+                    <tbody id="documents-table-body" class="divide-y divide-white/5">
                         @php
-                            $statusClasses = [
-                                'queued' => 'bg-slate-800 text-slate-300',
-                                'processing' => 'bg-indigo-500/20 text-indigo-200',
-                                'completed' => 'bg-emerald-500/20 text-emerald-200',
-                                'failed' => 'bg-rose-500/20 text-rose-200',
+                            $statusMap = [
+                                'queued' => ['class' => 'bg-slate-500/10 text-slate-400 border-slate-500/20', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+                                'processing' => ['class' => 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', 'icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'],
+                                'completed' => ['class' => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', 'icon' => 'M5 13l4 4L19 7'],
+                                'failed' => ['class' => 'bg-rose-500/10 text-rose-400 border-rose-500/20', 'icon' => 'M6 18L18 6M6 6l12 12'],
                             ];
                         @endphp
                         @foreach ($analysisBatch->documents as $document)
-                            <tr class="hover:bg-slate-900/60">
-                                <td class="px-4 py-4">
-                                    <div class="font-medium text-white">{{ $document->original_filename }}</div>
-                                    <div class="mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$document->status] ?? 'bg-slate-800 text-slate-300' }}">
-                                        {{ ucfirst($document->status) }}
+                            <tr id="doc-row-{{ $document->id }}" class="hover:bg-white/3 transition-colors group">
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col gap-3">
+                                        <div class="font-bold text-white group-hover:text-indigo-300 transition-colors">{{ $document->original_filename }}</div>
+                                        <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                            <span id="doc-pages-{{ $document->id }}" class="rounded-full border border-white/5 bg-white/5 px-2.5 py-1 text-slate-300">{{ $document->page_count ?? data_get($document->metadata, 'pdf.page_count', '—') }} pages</span>
+                                            <span id="doc-size-{{ $document->id }}" class="rounded-full border border-white/5 bg-white/5 px-2.5 py-1 text-slate-300">
+                                                {{ $formatBytes($document->file_size_bytes) }}
+                                            </span>
+                                            <span id="doc-word-count-{{ $document->id }}" class="rounded-full border border-white/5 bg-white/5 px-2.5 py-1 text-slate-300">
+                                                {{ data_get($document->metadata, 'analysis.word_count', '—') }} words
+                                            </span>
+                                        </div>
+                                        <details class="rounded-2xl border border-white/5 bg-white/5 p-4">
+                                            <summary class="cursor-pointer list-none text-[10px] font-bold uppercase tracking-[0.25em] text-indigo-300">
+                                                View metadata
+                                            </summary>
+                                            <div class="mt-4 grid gap-3 sm:grid-cols-2 text-[11px] text-slate-400">
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Title</div>
+                                                    <div id="doc-title-{{ $document->id }}" class="mt-1 text-slate-200">{{ data_get($document->metadata, 'pdf.details.Title', 'Untitled PDF') }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Author</div>
+                                                    <div id="doc-author-{{ $document->id }}" class="mt-1 text-slate-200">{{ data_get($document->metadata, 'pdf.details.Author', 'Unknown') }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Subject</div>
+                                                    <div id="doc-subject-{{ $document->id }}" class="mt-1 text-slate-200">{{ $renderMetadataValue(data_get($document->metadata, 'pdf.details.Subject')) }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Keywords</div>
+                                                    <div id="doc-keywords-{{ $document->id }}" class="mt-1 text-slate-200">{{ $renderMetadataValue(data_get($document->metadata, 'pdf.details.Keywords')) }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Producer</div>
+                                                    <div class="mt-1 text-slate-200">{{ data_get($document->metadata, 'pdf.details.Producer', 'Unknown') }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Intelligence Source</div>
+                                                    <div id="doc-intelligence-source-{{ $document->id }}" class="mt-1 text-slate-200">{{ data_get($document->metadata, 'analysis.intelligence_source', 'local') }}</div>
+                                                </div>
+                                                <div class="rounded-xl bg-slate-950/40 p-3">
+                                                    <div class="text-[9px] uppercase tracking-[0.25em] text-slate-500">Unique Words</div>
+                                                    <div class="mt-1 text-slate-200">{{ data_get($document->metadata, 'analysis.unique_word_count', '—') }}</div>
+                                                </div>
+                                            </div>
+                                        </details>
+                                        <div id="doc-status-container-{{ $document->id }}" class="flex items-center gap-2">
+                                            @php $s = $statusMap[$document->status] ?? $statusMap['queued']; @endphp
+                                            <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest {{ $s['class'] }}">
+                                                <svg class="w-3 h-3 {{ $document->status === 'processing' ? 'animate-spin' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="{{ $s['icon'] }}"/></svg>
+                                                {{ $document->status }}
+                                            </span>
+                                        </div>
+                                        <div id="doc-error-{{ $document->id }}" class="{{ $document->error_message ? '' : 'hidden' }} mt-1 flex items-start gap-2 text-[11px] text-rose-400/80 leading-relaxed max-w-sm">
+                                            <svg class="w-3.5 h-3.5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                            <span class="error-text">{{ $document->error_message }}</span>
+                                        </div>
+                                        <div id="doc-updated-{{ $document->id }}" class="text-[10px] uppercase tracking-[0.25em] text-slate-600">
+                                            {{ $document->analyzed_at ? $document->analyzed_at->diffForHumans() : 'Awaiting analysis' }}
+                                        </div>
                                     </div>
-                                    @if ($document->error_message)
-                                        <p class="mt-2 text-xs text-rose-300">{{ $document->error_message }}</p>
-                                    @endif
                                 </td>
                                 @foreach ($analysisBatch->keywords as $keyword)
                                     @php
                                         $value = $results[$document->id][$keyword->id] ?? null;
                                     @endphp
-                                    <td class="px-4 py-4 text-center text-sm">
-                                        {{ $value !== null ? $value : '—' }}
+                                    <td id="doc-{{ $document->id }}-kw-{{ $keyword->id }}" class="px-6 py-6 text-center border-l border-white/5">
+                                        @if ($value !== null)
+                                            <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl {{ $value > 0 ? 'bg-indigo-500/20 text-indigo-300 font-bold shadow-lg shadow-indigo-500/10' : 'bg-white/5 text-slate-500' }}">
+                                                {{ $value }}
+                                            </span>
+                                        @else
+                                            <span class="text-slate-700 animate-pulse">—</span>
+                                        @endif
                                     </td>
                                 @endforeach
                             </tr>
@@ -102,41 +305,213 @@
         const progressUrl = '{{ route('analysis.progress', $analysisBatch) }}';
         const progressText = document.getElementById('progress-text');
         const progressBar = document.getElementById('progress-bar');
+        const progressPercentage = document.getElementById('progress-percentage');
         const completedCount = document.getElementById('completed-count');
         const failedCount = document.getElementById('failed-count');
+        const queuedCount = document.getElementById('queued-count');
+        const metadataCompleteCount = document.getElementById('metadata-complete-count');
+        const intelligenceSourceCount = document.getElementById('intelligence-source-count');
+
+        const formatBytes = (bytes) => {
+            if (!bytes || Number.isNaN(Number(bytes))) {
+                return '—';
+            }
+
+            const size = Number(bytes);
+            if (size < 1024) return `${size} B`;
+            if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+            return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+        };
+
+        const statusMap = {
+            'queued': { class: 'bg-slate-500/10 text-slate-400 border-slate-500/20', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+            'processing': { class: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
+            'completed': { class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: 'M5 13l4 4L19 7' },
+            'failed': { class: 'bg-rose-500/10 text-rose-400 border-rose-500/20', icon: 'M6 18L18 6M6 6l12 12' }
+        };
+
+        const renderDocumentStatus = (doc) => {
+            const statusContainer = document.getElementById(`doc-status-container-${doc.id}`);
+            if (statusContainer) {
+                const s = statusMap[doc.status] || statusMap.queued;
+                statusContainer.innerHTML = `
+                    <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${s.class} transition-all">
+                        <svg class="w-3 h-3 ${doc.status === 'processing' ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="${s.icon}"/></svg>
+                        ${doc.status}
+                    </span>
+                `;
+            }
+
+            const errorContainer = document.getElementById(`doc-error-${doc.id}`);
+            if (errorContainer) {
+                if (doc.error) {
+                    errorContainer.classList.remove('hidden');
+                    errorContainer.querySelector('.error-text').textContent = doc.error;
+                } else {
+                    errorContainer.classList.add('hidden');
+                }
+            }
+
+            const pagesNode = document.getElementById(`doc-pages-${doc.id}`);
+            if (pagesNode) {
+                const pageCount = doc.page_count ?? doc.metadata?.pdf?.page_count ?? '—';
+                pagesNode.textContent = `${pageCount} pages`;
+            }
+
+            const sizeNode = document.getElementById(`doc-size-${doc.id}`);
+            if (sizeNode) {
+                sizeNode.textContent = formatBytes(doc.file_size_bytes ?? doc.metadata?.upload?.size_bytes);
+            }
+
+            const wordCountNode = document.getElementById(`doc-word-count-${doc.id}`);
+            if (wordCountNode) {
+                const wordCount = doc.metadata?.analysis?.word_count ?? '—';
+                wordCountNode.textContent = `${wordCount} words`;
+            }
+
+            const titleNode = document.getElementById(`doc-title-${doc.id}`);
+            if (titleNode) {
+                titleNode.textContent = doc.metadata?.pdf?.details?.Title || 'Untitled PDF';
+            }
+
+            const authorNode = document.getElementById(`doc-author-${doc.id}`);
+            if (authorNode) {
+                authorNode.textContent = doc.metadata?.pdf?.details?.Author || 'Unknown';
+            }
+
+            const subjectNode = document.getElementById(`doc-subject-${doc.id}`);
+            if (subjectNode) {
+                subjectNode.textContent = doc.metadata?.pdf?.details?.Subject || '—';
+            }
+
+            const keywordsNode = document.getElementById(`doc-keywords-${doc.id}`);
+            if (keywordsNode) {
+                keywordsNode.textContent = doc.metadata?.pdf?.details?.Keywords || '—';
+            }
+
+            const intelligenceNode = document.getElementById(`doc-intelligence-source-${doc.id}`);
+            if (intelligenceNode) {
+                intelligenceNode.textContent = doc.metadata?.analysis?.intelligence_source || 'local';
+            }
+
+            const updatedNode = document.getElementById(`doc-updated-${doc.id}`);
+            if (updatedNode) {
+                updatedNode.textContent = doc.analyzed_at ? `Updated ${new Date(doc.analyzed_at).toLocaleString()}` : 'Awaiting analysis';
+            }
+        };
 
         const updateProgress = async () => {
             try {
                 const response = await fetch(progressUrl, { headers: { 'Accept': 'application/json' } });
-                if (!response.ok) {
-                    return;
-                }
+                if (!response.ok) return;
 
                 const data = await response.json();
                 const percentage = data.total > 0 ? Math.round((data.processed / data.total) * 100) : 0;
 
-                if (progressText) {
-                    progressText.textContent = `Processed ${data.processed} of ${data.total} documents.`;
+                if (progressText) progressText.textContent = `Processed ${data.processed} of ${data.total} documents`;
+                if (progressBar) progressBar.style.width = `${percentage}%`;
+                if (progressPercentage) progressPercentage.textContent = `${percentage}%`;
+                if (completedCount) completedCount.textContent = data.completed;
+                if (failedCount) failedCount.textContent = data.failed;
+                if (queuedCount) queuedCount.textContent = data.pending ?? Math.max(0, data.total - data.processed);
+                if (metadataCompleteCount) metadataCompleteCount.textContent = data.completed;
+                if (intelligenceSourceCount) intelligenceSourceCount.textContent = data.top_words && Object.keys(data.top_words).length > 0 ? 'Live' : 'Pending';
+
+                // Update individual documents
+                if (data.documents) {
+                    data.documents.forEach(doc => {
+                        if (doc.results) {
+                            Object.entries(doc.results).forEach(([kwId, count]) => {
+                                const cell = document.getElementById(`doc-${doc.id}-kw-${kwId}`);
+                                if (cell) {
+                                    cell.innerHTML = `
+                                        <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl ${count > 0 ? 'bg-indigo-500/20 text-indigo-300 font-bold shadow-lg shadow-indigo-500/10' : 'bg-white/5 text-slate-500'} transition-all animate-in zoom-in-50 duration-500">
+                                            ${count}
+                                        </span>
+                                    `;
+                                }
+                            });
+                        }
+
+                        renderDocumentStatus(doc);
+                    });
                 }
-                if (progressBar) {
-                    progressBar.style.width = `${percentage}%`;
+
+                // Update Word Intelligence
+                const intelligenceCard = document.getElementById('word-intelligence-card');
+                const wordsContainer = document.getElementById('top-words-container');
+                const intelligenceStatus = document.getElementById('intelligence-status');
+                const intelProgressContainer = document.getElementById('intelligence-progress-container');
+                const intelProgressBar = document.getElementById('intelligence-progress-bar');
+                const intelProgressPercentage = document.getElementById('intelligence-progress-percentage');
+
+                let displayWords = data.top_words;
+
+                // Fallback to local aggregation if batch aggregate isn't ready
+                if (!displayWords || Object.keys(displayWords).length === 0) {
+                    const localAggregate = {};
+                    let docCount = 0;
+                    data.documents.forEach(doc => {
+                        if (doc.top_words) {
+                            docCount++;
+                            Object.entries(doc.top_words).forEach(([word, count]) => {
+                                localAggregate[word] = (localAggregate[word] ?? 0) + count;
+                            });
+                        }
+                    });
+                    
+                    if (Object.keys(localAggregate).length > 0) {
+                        displayWords = Object.fromEntries(
+                            Object.entries(localAggregate).sort((a,b) => b[1] - a[1]).slice(0, 30)
+                        );
+                        
+                        // Show progress based on documents analyzed for intelligence
+                        const intelPercentage = Math.round((docCount / data.total) * 100);
+                        intelProgressContainer.classList.remove('hidden');
+                        intelProgressBar.style.width = `${intelPercentage}%`;
+                        intelProgressPercentage.textContent = `${intelPercentage}%`;
+                    }
+                } else {
+                    // Batch aggregation is complete
+                    intelProgressContainer.classList.add('hidden');
                 }
-                if (completedCount) {
-                    completedCount.textContent = data.completed;
-                }
-                if (failedCount) {
-                    failedCount.textContent = data.failed;
+
+                if (displayWords && Object.keys(displayWords).length > 0) {
+                    intelligenceCard.classList.remove('opacity-0', 'translate-y-4');
+                    
+                    if (data.is_complete) {
+                        intelligenceStatus.classList.remove('animate-pulse');
+                        intelligenceStatus.innerHTML = '<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg> Synthesis Complete';
+                        intelProgressContainer.classList.add('hidden');
+                    } else {
+                        intelligenceStatus.textContent = 'Synthesizing Stream...';
+                    }
+
+                    wordsContainer.innerHTML = Object.entries(displayWords).map(([word, count]) => `
+                        <div class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/5 p-4 transition-all hover:bg-white/[0.08] hover:border-indigo-500/30 hover:scale-[1.02] animate-in zoom-in-95 duration-500">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-black text-white uppercase tracking-wider group-hover:text-indigo-300 transition-colors">${word}</span>
+                                <span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">${count}</span>
+                            </div>
+                            <div class="mt-3 h-1 w-full rounded-full bg-slate-800/50 overflow-hidden">
+                                <div class="h-full bg-indigo-500 transition-all duration-1000" style="width: ${Math.min(100, (count / Object.values(displayWords)[0]) * 100)}%"></div>
+                            </div>
+                        </div>
+                    `).join('');
                 }
 
                 if (data.is_complete) {
                     clearInterval(progressTimer);
+                    setTimeout(() => {
+                        if (progressPercentage) progressPercentage.innerHTML = '<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+                    }, 1000);
                 }
             } catch (error) {
-                console.error(error);
+                console.error('Telemetry Error:', error);
             }
         };
 
-        const progressTimer = setInterval(updateProgress, 3000);
+        const progressTimer = setInterval(updateProgress, 2000);
         updateProgress();
     </script>
 @endpush

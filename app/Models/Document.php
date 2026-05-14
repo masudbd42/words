@@ -26,8 +26,21 @@ class Document extends Model
         'analysis_batch_id',
         'original_filename',
         'stored_path',
+        'file_size_bytes',
+        'mime_type',
+        'checksum_sha256',
+        'page_count',
         'status',
         'error_message',
+        'top_words',
+        'metadata',
+        'analyzed_at',
+    ];
+
+    protected $casts = [
+        'top_words' => 'array',
+        'metadata' => 'array',
+        'analyzed_at' => 'datetime',
     ];
 
     /**

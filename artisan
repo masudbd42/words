@@ -9,6 +9,9 @@ define('LARAVEL_START', microtime(true));
 // Register the Composer autoloader...
 require __DIR__.'/vendor/autoload.php';
 
+// Set high memory limit for CLI (Queue/Analysis)
+ini_set('memory_limit', '2048M');
+
 // Bootstrap Laravel and handle the command...
 /** @var Application $app */
 $app = require_once __DIR__.'/bootstrap/app.php';
