@@ -23,6 +23,7 @@ class AnalysisBatch extends Model
     ];
 
     protected $casts = [
+        'word_limit' => 'integer',
         'top_words' => 'array',
     ];
 

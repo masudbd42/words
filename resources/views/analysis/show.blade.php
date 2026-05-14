@@ -188,6 +188,37 @@
             </div>
         </section>
 
+        <section class="rounded-[2.5rem] glass p-8 sm:p-10">
+            <div class="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+                <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-400">Proposal Fit Check</p>
+                    <h2 class="mt-3 text-2xl font-bold tracking-tight text-white">Compare your research proposal with these papers</h2>
+                    <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
+                        Upload a proposal PDF or text file. The system compares your proposal's high-usage words and configured keywords against completed paper analyses, then shows a suitability popup with the closest matches.
+                    </p>
+                </div>
+
+                <form id="proposal-comparison-form" class="flex w-full flex-col gap-3 rounded-3xl border border-white/5 bg-slate-950/30 p-4 sm:min-w-[360px]">
+                    <label for="proposal-file" class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">Upload proposal</label>
+                    <input
+                        id="proposal-file"
+                        name="proposal"
+                        type="file"
+                        accept="application/pdf,text/plain,.txt,.md"
+                        class="block w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-slate-300 file:mr-4 file:rounded-full file:border-0 file:bg-indigo-500 file:px-4 file:py-2 file:text-xs file:font-bold file:text-white hover:border-indigo-500/40 focus:border-indigo-500/60 focus:outline-none"
+                    />
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-950 shadow-xl shadow-emerald-500/20 transition-all hover:scale-[1.02] hover:bg-emerald-400 active:scale-95"
+                    >
+                        Compare Proposal
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </button>
+                    <div id="proposal-comparison-status" class="hidden rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-slate-400"></div>
+                </form>
+            </div>
+        </section>
+
         <div class="overflow-hidden rounded-[2.5rem] glass-darker">
             <div class="overflow-x-auto">
                 <table class="min-w-full border-collapse text-left text-sm text-slate-300">
@@ -275,6 +306,16 @@
                                         <div id="doc-updated-{{ $document->id }}" class="text-[10px] uppercase tracking-[0.25em] text-slate-600">
                                             {{ $document->analyzed_at ? $document->analyzed_at->diffForHumans() : 'Awaiting analysis' }}
                                         </div>
+                                        <button
+                                            type="button"
+                                            data-document-analysis-button
+                                            data-document-name="{{ $document->original_filename }}"
+                                            data-top-words-url="{{ route('analysis.documents.top-words', [$analysisBatch, $document]) }}"
+                                            class="inline-flex w-fit items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-indigo-300 transition-all hover:border-indigo-400/50 hover:bg-indigo-500/20 hover:text-white"
+                                        >
+                                            More analysis
+                                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                                        </button>
                                     </div>
                                 </td>
                                 @foreach ($analysisBatch->keywords as $keyword)
@@ -297,6 +338,60 @@
                 </table>
             </div>
         </div>
+
+        <div id="document-analysis-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md">
+            <div class="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-[2.5rem] glass-darker shadow-2xl">
+                <div class="flex flex-col gap-5 border-b border-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-indigo-400">Paper Deep Analysis</p>
+                        <h3 id="document-analysis-title" class="mt-2 text-xl font-bold text-white">Top words</h3>
+                    </div>
+                    <button type="button" data-close-document-modal class="rounded-full border border-white/10 bg-white/5 p-3 text-slate-400 transition hover:text-white">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="max-h-[calc(90vh-110px)] overflow-y-auto p-6">
+                    <div class="flex flex-col gap-4 rounded-3xl border border-white/5 bg-white/5 p-4 sm:flex-row sm:items-end">
+                        <label class="flex-1">
+                            <span class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">How many top words?</span>
+                            <input id="document-word-limit" type="number" min="1" max="100" value="50" class="mt-2 w-full rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-3 text-sm font-bold text-white focus:border-indigo-500/60 focus:outline-none">
+                        </label>
+                        <button id="document-word-load-button" type="button" class="rounded-full bg-indigo-500 px-6 py-3 text-xs font-black uppercase tracking-widest text-white transition hover:bg-indigo-400">
+                            Analyze Words
+                        </button>
+                    </div>
+                    <div id="document-analysis-summary" class="mt-5 grid gap-3 sm:grid-cols-3"></div>
+                    <div id="document-analysis-content" class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="proposal-feedback-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 p-4 backdrop-blur-md">
+            <div class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2.5rem] glass-darker shadow-2xl">
+                <div class="flex flex-col gap-5 border-b border-white/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-400">Proposal Feedback</p>
+                        <h3 id="proposal-feedback-title" class="mt-2 text-xl font-bold text-white">Suitability result</h3>
+                    </div>
+                    <button type="button" data-close-proposal-modal class="rounded-full border border-white/10 bg-white/5 p-3 text-slate-400 transition hover:text-white">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="max-h-[calc(90vh-110px)] overflow-y-auto p-6">
+                    <div id="proposal-feedback-summary" class="rounded-3xl border border-white/5 bg-white/5 p-6"></div>
+                    <div class="mt-6 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+                        <div>
+                            <h4 class="text-sm font-bold text-white">Proposal top words</h4>
+                            <div id="proposal-top-words" class="mt-4 grid gap-3"></div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-white">Closest paper matches</h4>
+                            <div id="proposal-document-matches" class="mt-4 grid gap-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -311,6 +406,21 @@
         const queuedCount = document.getElementById('queued-count');
         const metadataCompleteCount = document.getElementById('metadata-complete-count');
         const intelligenceSourceCount = document.getElementById('intelligence-source-count');
+        const proposalComparisonForm = document.getElementById('proposal-comparison-form');
+        const proposalFileInput = document.getElementById('proposal-file');
+        const proposalComparisonStatus = document.getElementById('proposal-comparison-status');
+        const documentAnalysisModal = document.getElementById('document-analysis-modal');
+        const documentAnalysisTitle = document.getElementById('document-analysis-title');
+        const documentWordLimitInput = document.getElementById('document-word-limit');
+        const documentWordLoadButton = document.getElementById('document-word-load-button');
+        const documentAnalysisSummary = document.getElementById('document-analysis-summary');
+        const documentAnalysisContent = document.getElementById('document-analysis-content');
+        const proposalFeedbackModal = document.getElementById('proposal-feedback-modal');
+        const proposalFeedbackTitle = document.getElementById('proposal-feedback-title');
+        const proposalFeedbackSummary = document.getElementById('proposal-feedback-summary');
+        const proposalTopWords = document.getElementById('proposal-top-words');
+        const proposalDocumentMatches = document.getElementById('proposal-document-matches');
+        let activeDocumentTopWordsUrl = null;
 
         const formatBytes = (bytes) => {
             if (!bytes || Number.isNaN(Number(bytes))) {
@@ -328,6 +438,48 @@
             'processing': { class: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
             'completed': { class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: 'M5 13l4 4L19 7' },
             'failed': { class: 'bg-rose-500/10 text-rose-400 border-rose-500/20', icon: 'M6 18L18 6M6 6l12 12' }
+        };
+
+        const escapeHtml = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const clampLimit = (value) => Math.max(1, Math.min(100, Number.parseInt(value, 10) || 50));
+
+        const showStatus = (node, message, type = 'info') => {
+            if (!node) return;
+            node.classList.remove('hidden', 'text-rose-300', 'text-emerald-300', 'text-slate-400');
+            node.classList.add(type === 'error' ? 'text-rose-300' : (type === 'success' ? 'text-emerald-300' : 'text-slate-400'));
+            node.textContent = message;
+        };
+
+        const renderWordList = (words, compact = false) => {
+            const entries = Object.entries(words || {});
+
+            if (entries.length === 0) {
+                return '<div class="rounded-2xl border border-white/5 bg-white/5 p-5 text-center text-xs font-bold uppercase tracking-widest text-slate-500">No top words available yet</div>';
+            }
+
+            const max = Math.max(...entries.map(([, count]) => Number(count) || 0), 1);
+
+            return entries.map(([word, count], index) => {
+                const percentage = Math.max(4, Math.round(((Number(count) || 0) / max) * 100));
+
+                return `
+                    <div class="rounded-2xl border border-white/5 bg-white/5 p-4">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="min-w-0 truncate text-xs font-black uppercase tracking-wider text-white">${index + 1}. ${escapeHtml(word)}</span>
+                            <span class="shrink-0 rounded-full bg-indigo-500/10 px-2.5 py-1 text-[10px] font-black text-indigo-300">${Number(count) || 0}</span>
+                        </div>
+                        <div class="${compact ? 'mt-2' : 'mt-3'} h-1.5 overflow-hidden rounded-full bg-slate-900/70">
+                            <div class="h-full rounded-full bg-indigo-500" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         };
 
         const renderDocumentStatus = (doc) => {
@@ -461,8 +613,9 @@
                     });
                     
                     if (Object.keys(localAggregate).length > 0) {
+                        const localLimit = clampLimit(data.word_limit || 50);
                         displayWords = Object.fromEntries(
-                            Object.entries(localAggregate).sort((a,b) => b[1] - a[1]).slice(0, 30)
+                            Object.entries(localAggregate).sort((a,b) => b[1] - a[1]).slice(0, localLimit)
                         );
                         
                         // Show progress based on documents analyzed for intelligence
@@ -490,7 +643,7 @@
                     wordsContainer.innerHTML = Object.entries(displayWords).map(([word, count]) => `
                         <div class="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/5 p-4 transition-all hover:bg-white/[0.08] hover:border-indigo-500/30 hover:scale-[1.02] animate-in zoom-in-95 duration-500">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-black text-white uppercase tracking-wider group-hover:text-indigo-300 transition-colors">${word}</span>
+                                <span class="text-xs font-black text-white uppercase tracking-wider group-hover:text-indigo-300 transition-colors">${escapeHtml(word)}</span>
                                 <span class="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">${count}</span>
                             </div>
                             <div class="mt-3 h-1 w-full rounded-full bg-slate-800/50 overflow-hidden">
@@ -510,6 +663,215 @@
                 console.error('Telemetry Error:', error);
             }
         };
+
+        const openModal = (modal) => {
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        const closeModal = (modal) => {
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        const loadDocumentTopWords = async () => {
+            if (!activeDocumentTopWordsUrl || !documentAnalysisContent || !documentWordLoadButton) {
+                return;
+            }
+
+            const limit = clampLimit(documentWordLimitInput?.value);
+            const url = new URL(activeDocumentTopWordsUrl, window.location.origin);
+            url.searchParams.set('limit', String(limit));
+
+            documentWordLoadButton.disabled = true;
+            documentWordLoadButton.classList.add('opacity-60', 'cursor-not-allowed');
+            documentAnalysisContent.innerHTML = '<div class="col-span-full rounded-2xl border border-white/5 bg-white/5 p-8 text-center text-xs font-bold uppercase tracking-widest text-slate-500">Loading paper word usage...</div>';
+
+            try {
+                const response = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Unable to load paper analysis.');
+                }
+
+                if (documentAnalysisTitle) {
+                    documentAnalysisTitle.textContent = `${data.document.filename} - top ${data.limit} words`;
+                }
+
+                if (documentAnalysisSummary) {
+                    documentAnalysisSummary.innerHTML = `
+                        <div class="rounded-2xl border border-white/5 bg-white/5 p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Words analyzed</p>
+                            <p class="mt-1 text-xl font-black text-white">${data.document.word_count ?? '—'}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/5 bg-white/5 p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Unique words</p>
+                            <p class="mt-1 text-xl font-black text-indigo-300">${data.document.unique_word_count ?? '—'}</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/5 bg-white/5 p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Available rankings</p>
+                            <p class="mt-1 text-xl font-black text-emerald-300">${data.available}</p>
+                        </div>
+                    `;
+                }
+
+                documentAnalysisContent.innerHTML = renderWordList(data.top_words);
+            } catch (error) {
+                documentAnalysisContent.innerHTML = `<div class="col-span-full rounded-2xl border border-rose-500/20 bg-rose-500/10 p-6 text-sm text-rose-200">${escapeHtml(error.message)}</div>`;
+            } finally {
+                documentWordLoadButton.disabled = false;
+                documentWordLoadButton.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        };
+
+        document.querySelectorAll('[data-document-analysis-button]').forEach((button) => {
+            button.addEventListener('click', () => {
+                activeDocumentTopWordsUrl = button.dataset.topWordsUrl;
+                if (documentWordLimitInput) {
+                    documentWordLimitInput.value = '50';
+                }
+                if (documentAnalysisTitle) {
+                    documentAnalysisTitle.textContent = `${button.dataset.documentName || 'Paper'} - top words`;
+                }
+                if (documentAnalysisSummary) {
+                    documentAnalysisSummary.innerHTML = '';
+                }
+                openModal(documentAnalysisModal);
+                loadDocumentTopWords();
+            });
+        });
+
+        documentWordLoadButton?.addEventListener('click', loadDocumentTopWords);
+        document.querySelectorAll('[data-close-document-modal]').forEach((button) => button.addEventListener('click', () => closeModal(documentAnalysisModal)));
+        documentAnalysisModal?.addEventListener('click', (event) => {
+            if (event.target === documentAnalysisModal) {
+                closeModal(documentAnalysisModal);
+            }
+        });
+
+        const renderProposalFeedback = (data) => {
+            const summary = data.summary || {};
+            const isSuitable = Boolean(summary.suitable);
+            const toneClasses = isSuitable
+                ? { label: 'text-emerald-300', panel: 'border-emerald-500/20 bg-emerald-500/10', score: 'text-emerald-300' }
+                : { label: 'text-rose-300', panel: 'border-rose-500/20 bg-rose-500/10', score: 'text-rose-300' };
+
+            if (proposalFeedbackTitle) {
+                proposalFeedbackTitle.textContent = summary.verdict || 'Proposal feedback';
+            }
+
+            if (proposalFeedbackSummary) {
+                proposalFeedbackSummary.innerHTML = `
+                    <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.3em] ${toneClasses.label}">${isSuitable ? 'Suitable' : 'Needs review'}</p>
+                            <h4 class="mt-2 text-2xl font-black text-white">${escapeHtml(summary.verdict || 'Comparison complete')}</h4>
+                            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">${escapeHtml(summary.message || 'Review the detailed matches below.')}</p>
+                        </div>
+                        <div class="flex h-28 w-28 shrink-0 items-center justify-center rounded-full border ${toneClasses.panel}">
+                            <div class="text-center">
+                                <div class="text-3xl font-black ${toneClasses.score}">${Number(summary.score || 0)}%</div>
+                                <div class="text-[9px] font-bold uppercase tracking-widest text-slate-500">Best fit</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                        <div class="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Top-paper confidence</p>
+                            <p class="mt-1 text-lg font-black text-white">${Number(summary.confidence || 0)}%</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/5 bg-slate-950/40 p-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Decision basis</p>
+                            <p class="mt-1 text-xs font-medium text-slate-300">Top words + configured keyword overlap</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (proposalTopWords) {
+                proposalTopWords.innerHTML = renderWordList(data.proposal_top_words || {}, true);
+            }
+
+            if (proposalDocumentMatches) {
+                const documents = data.documents || [];
+                proposalDocumentMatches.innerHTML = documents.length ? documents.map((doc) => `
+                    <div class="rounded-3xl border border-white/5 bg-white/5 p-5">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                                <h5 class="truncate text-sm font-black text-white">${escapeHtml(doc.filename)}</h5>
+                                <p class="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">${escapeHtml(doc.verdict)} · ${doc.page_count ?? '—'} pages · ${doc.word_count ?? '—'} words</p>
+                            </div>
+                            <span class="rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-black text-indigo-300">${Number(doc.score || 0)}%</span>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Shared words</p>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                ${(doc.shared_words || []).slice(0, 8).map((item) => `<span class="rounded-full border border-white/5 bg-slate-950/40 px-2.5 py-1 text-[10px] font-bold text-slate-300">${escapeHtml(item.word)} (${Number(item.proposal_count || 0)}/${Number(item.paper_count || 0)})</span>`).join('') || '<span class="text-xs text-slate-500">No strong shared top words.</span>'}
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Keyword matches</p>
+                            <p class="mt-2 text-xs text-slate-300">${(doc.keyword_matches || []).map(escapeHtml).join(', ') || 'No configured keyword overlap.'}</p>
+                        </div>
+                    </div>
+                `).join('') : '<div class="rounded-2xl border border-white/5 bg-white/5 p-6 text-center text-xs font-bold uppercase tracking-widest text-slate-500">No completed papers are ready for comparison.</div>';
+            }
+
+            openModal(proposalFeedbackModal);
+        };
+
+        proposalComparisonForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const file = proposalFileInput?.files?.[0];
+            if (!file) {
+                showStatus(proposalComparisonStatus, 'Please choose a proposal PDF or text file first.', 'error');
+                return;
+            }
+
+            const button = proposalComparisonForm.querySelector('button[type="submit"]');
+            const formData = new FormData();
+            formData.append('proposal', file);
+
+            button.disabled = true;
+            button.classList.add('opacity-60', 'cursor-not-allowed');
+            showStatus(proposalComparisonStatus, 'Reading proposal and comparing research alignment...');
+
+            try {
+                const response = await fetch('{{ route('analysis.compare-proposal', $analysisBatch) }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: formData,
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    const message = data.message || Object.values(data.errors || {})?.flat()?.[0] || 'Proposal comparison failed.';
+                    throw new Error(message);
+                }
+
+                showStatus(proposalComparisonStatus, 'Comparison complete. Review the popup feedback.', 'success');
+                renderProposalFeedback(data);
+            } catch (error) {
+                showStatus(proposalComparisonStatus, error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.classList.remove('opacity-60', 'cursor-not-allowed');
+            }
+        });
+
+        document.querySelectorAll('[data-close-proposal-modal]').forEach((button) => button.addEventListener('click', () => closeModal(proposalFeedbackModal)));
+        proposalFeedbackModal?.addEventListener('click', (event) => {
+            if (event.target === proposalFeedbackModal) {
+                closeModal(proposalFeedbackModal);
+            }
+        });
 
         const progressTimer = setInterval(updateProgress, 2000);
         updateProgress();
