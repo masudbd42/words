@@ -17,6 +17,7 @@ class StoreAnalysisRequest extends FormRequest
         return [
             'keywords' => ['required', 'string', 'max:5000'],
             'total_files' => ['sometimes', 'integer', 'min:1', 'max:200'],
+            'word_limit' => ['sometimes', 'integer', 'min:10', 'max:100'],
             'documents' => ['nullable', 'array'],
         ];
     }

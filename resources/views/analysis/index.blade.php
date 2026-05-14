@@ -4,12 +4,12 @@
     <div class="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <section class="grid gap-6 lg:grid-cols-2">
             <div class="rounded-4xl glass-darker p-8 sm:p-10 flex flex-col justify-center">
-                <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-indigo-400">PDF Keyword Analyzer</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-indigo-400">Research Paper Intelligence</p>
                 <h1 class="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl leading-[1.1]">
-                    Professional batch <span class="text-indigo-400">PDF analysis.</span>
+                    Professional research <span class="text-indigo-400">word analysis.</span>
                 </h1>
                 <p class="mt-6 text-sm leading-relaxed text-slate-400 max-w-md">
-                    Extract insights from multiple documents simultaneously. Define your parameters and let our asynchronous engine handle the processing.
+                    Upload papers, search your own research terms, discover the top 50 or 100 most-used words, and compare your proposal against the paper set.
                 </p>
 
                 <div class="mt-6 inline-flex items-start gap-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 p-4 max-w-md">
@@ -45,7 +45,7 @@
                         </div>
                         <div>
                             <h2 class="text-sm font-bold text-white">Intelligent Extraction</h2>
-                            <p class="text-xs text-slate-400 mt-1">Smart word-boundary matching logic.</p>
+                    <p class="text-xs text-slate-400 mt-1">Smart word-boundary matching and top-word ranking.</p>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         </div>
                         <div>
                             <h2 class="text-sm font-bold text-white">Live Telemetry</h2>
-                            <p class="text-xs text-slate-400 mt-1">Real-time queue monitoring dashboard.</p>
+                    <p class="text-xs text-slate-400 mt-1">Real-time paper insights and proposal suitability feedback.</p>
                         </div>
                     </div>
                 </div>
@@ -113,7 +113,7 @@
             <div class="flex flex-col gap-4">
                 <div class="rounded-4xl glass p-8 flex-1">
                     <div class="flex items-center justify-between">
-                        <label for="keywords" class="text-sm font-bold text-white tracking-tight">Keywords Configuration</label>
+                        <label for="keywords" class="text-sm font-bold text-white tracking-tight">Research Words / Keywords</label>
                         <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Required</span>
                     </div>
                     <div class="mt-6 relative group">
@@ -121,7 +121,7 @@
                             id="keywords"
                             name="keywords"
                             rows="5"
-                            placeholder="e.g. revenue, margin, net income, user growth"
+                            placeholder="e.g. machine learning, sustainability, neural network, climate policy"
                             class="w-full rounded-2xl border border-white/5 bg-slate-950/40 px-5 py-4 text-sm text-slate-200 placeholder:text-slate-600 focus:border-indigo-500/50 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none"
                         >{{ old('keywords') }}</textarea>
                         <div class="absolute inset-0 rounded-2xl pointer-events-none border border-white/5 group-focus-within:border-indigo-500/30 transition-colors"></div>
@@ -129,7 +129,7 @@
                     <div class="mt-4 flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/5">
                         <svg class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <p class="text-xs leading-relaxed text-slate-400">
-                            Matching is case-insensitive. Use commas to separate multiple terms.
+                            Matching is case-insensitive. Use commas to separate the words or phrases you want to count in every paper.
                         </p>
                     </div>
                 </div>
@@ -200,22 +200,22 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-bold text-white tracking-tight">Analysis Intelligence Depth</h3>
-                                <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Configure the discovery threshold for semantic word patterns</p>
+                        <p class="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">Choose how many high-usage words to show across the uploaded papers</p>
                             </div>
                         </div>
 
                         <div class="flex items-center p-1.5 rounded-2xl bg-slate-900/50 border border-white/5">
                             <label class="relative cursor-pointer">
-                                <input type="radio" name="word_limit" value="10" class="peer sr-only">
-                                <span class="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all peer-checked:bg-indigo-500 peer-checked:text-white inline-block">Top 10</span>
-                            </label>
-                            <label class="relative cursor-pointer">
-                                <input type="radio" name="word_limit" value="20" class="peer sr-only" checked>
+                                <input type="radio" name="word_limit" value="20" class="peer sr-only">
                                 <span class="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all peer-checked:bg-indigo-500 peer-checked:text-white inline-block">Top 20</span>
                             </label>
                             <label class="relative cursor-pointer">
-                                <input type="radio" name="word_limit" value="50" class="peer sr-only">
+                                <input type="radio" name="word_limit" value="50" class="peer sr-only" checked>
                                 <span class="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all peer-checked:bg-indigo-500 peer-checked:text-white inline-block">Top 50</span>
+                            </label>
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="word_limit" value="100" class="peer sr-only">
+                                <span class="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-500 transition-all peer-checked:bg-indigo-500 peer-checked:text-white inline-block">Top 100</span>
                             </label>
                         </div>
                     </div>
@@ -350,7 +350,7 @@
             e.preventDefault();
             const files = Array.from(fileInput.files);
             const keywords = document.getElementById('keywords').value;
-            const wordLimit = form.querySelector('input[name="word_limit"]:checked').value;
+            const wordLimit = form.querySelector('input[name="word_limit"]:checked')?.value || '50';
 
             if (!keywords || files.length === 0) return;
 

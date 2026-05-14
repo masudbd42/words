@@ -52,12 +52,14 @@ class PdfAnalysisService
         }
 
         try {
+            $requestedWordLimit = max(1, min(100, $wordLimit));
+            $storedWordLimit = max($requestedWordLimit, 100);
             $parser = new Parser();
             $pdf = $parser->parseFile($path);
 
             $text = $pdf->getText();
             $counts = $this->countKeywords($text, $keywords);
-            $intelligence = $this->generateWordIntelligence($text, $wordLimit);
+            $intelligence = $this->generateWordIntelligence($text, $storedWordLimit);
             $sourceSizeBytes = filesize($path) ?: null;
             $sourceChecksum = hash_file('sha256', $path) ?: null;
 
@@ -85,7 +87,8 @@ class PdfAnalysisService
                     'unique_word_count' => $uniqueWordCount,
                     'keyword_match_count' => $keywordMatchCount,
                     'intelligence_source' => $intelligence['source'],
-                    'selected_word_limit' => $wordLimit,
+                    'selected_word_limit' => $requestedWordLimit,
+                    'available_word_limit' => count($intelligence['words']),
                     'source_checksum_sha256' => $sourceChecksum,
                     'source_size_bytes' => $sourceSizeBytes,
                 ],
